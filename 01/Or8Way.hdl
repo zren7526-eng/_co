@@ -13,5 +13,16 @@ CHIP Or8Way {
     OUT out;
 
     PARTS:
-    // Put your code here:
+    // 第一層：將 8 個輸入兩兩合併
+    Or(a=in[0], b=in[1], out=or01);
+    Or(a=in[2], b=in[3], out=or23);
+    Or(a=in[4], b=in[5], out=or45);
+    Or(a=in[6], b=in[7], out=or67);
+
+    // 第二層：將第一層的 4 個結果兩兩合併
+    Or(a=or01, b=or23, out=or0to3);
+    Or(a=or45, b=or67, out=or4to7);
+
+    // 第三層：得出最終結果
+    Or(a=or0to3, b=or4to7, out=out);
 }

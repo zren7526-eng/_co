@@ -18,5 +18,14 @@ CHIP Mux8Way16 {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    // 第一層分組賽：利用右邊的兩個位元 sel[0..1]，分別在上下半部各選出一個冠軍
+    // 上半部 (a, b, c, d) 選出 outABCD
+    Mux4Way16(a=a, b=b, c=c, d=d, sel=sel[0..1], out=outABCD);
+    
+    // 下半部 (e, f, g, h) 選出 outEFGH
+    Mux4Way16(a=e, b=f, c=g, d=h, sel=sel[0..1], out=outEFGH);
+
+    // 第二層總決賽：利用最左邊的最高位元 sel[2]，決定最後是上半部還是下半部勝出
+    // 如果 sel[2] 是 0，輸出 outABCD；如果是 1，輸出 outEFGH
+    Mux16(a=outABCD, b=outEFGH, sel=sel[2], out=out);
 }

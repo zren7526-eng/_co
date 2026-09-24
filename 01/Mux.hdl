@@ -14,5 +14,15 @@ CHIP Mux {
     OUT out;
 
     PARTS:
-    // Put your code here:
+    // 產生 sel 的反相訊號 (notSel)
+    Not(in=sel, out=notSel);
+
+    // 當 sel == 0 時，notSel 為 1，aOut 的結果會等於 a
+    And(a=a, b=notSel, out=aOut);
+
+    // 當 sel == 1 時，bOut 的結果會等於 b
+    And(a=b, b=sel, out=bOut);
+
+    // 將兩條線路合併，因為 sel 只會是 0 或 1，aOut 與 bOut 必定有一個是 0
+    Or(a=aOut, b=bOut, out=out);
 }

@@ -16,5 +16,10 @@ CHIP DMux4Way {
     OUT a, b, c, d;
 
     PARTS:
-    // Put your code here:
+    // 第一層：利用最高位元 sel[1]，將 in 分流到「上半部(a,b)」或「下半部(c,d)」
+    DMux(in=in, sel=sel[1], a=outAB, b=outCD);
+
+    // 第二層：利用最低位元 sel[0]，決定最終單一輸出端點
+    DMux(in=outAB, sel=sel[0], a=a, b=b);
+    DMux(in=outCD, sel=sel[0], a=c, b=d);
 }

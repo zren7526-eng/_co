@@ -16,5 +16,12 @@ CHIP Mux4Way16 {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    // 第一層淘汰賽：利用右邊的位元 sel[0]，兩兩捉對廝殺
+    // 如果 sel[0] 是 0，就選出 a 和 c；如果是 1，就選出 b 和 d
+    Mux16(a=a, b=b, sel=sel[0], out=outAB);
+    Mux16(a=c, b=d, sel=sel[0], out=outCD);
+
+    // 第二層決賽：利用左邊的位元 sel[1]，決定最終贏家
+    // 如果 sel[1] 是 0，代表答案在上半部 (a 或 b)；如果是 1，代表答案在下半部 (c 或 d)
+    Mux16(a=outAB, b=outCD, sel=sel[1], out=out);
 }

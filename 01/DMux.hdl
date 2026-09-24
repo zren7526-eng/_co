@@ -14,5 +14,12 @@ CHIP DMux {
     OUT a, b;
 
     PARTS:
-    // Put your code here:
+    // 產生 sel 的反相訊號
+    Not(in=sel, out=notSel);
+    
+    // 當 sel == 0 時 (notSel 為 1)，a 的輸出等於 in
+    And(a=in, b=notSel, out=a);
+    
+    // 當 sel == 1 時，b 的輸出等於 in
+    And(a=in, b=sel, out=b);
 }

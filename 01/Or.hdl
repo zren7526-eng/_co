@@ -14,5 +14,12 @@ CHIP Or {
     OUT out;
 
     PARTS:
-    // Put your code here:
+    // 將 a 反相
+    Not(in=a, out=notA);
+    
+    // 將 b 反相
+    Not(in=b, out=notB);
+    
+    // 兩者再進行 Nand 運算
+    Nand(a=notA, b=notB, out=out);
 }

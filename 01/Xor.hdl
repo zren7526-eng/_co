@@ -13,5 +13,16 @@ CHIP Xor {
     OUT out;
 
     PARTS:
-    // Put your code here:
+    // 產生 a 和 b 的反相訊號
+    Not(in=a, out=notA);
+    Not(in=b, out=notB);
+
+    // a AND (NOT b)
+    And(a=a, b=notB, out=aAndNotB);
+
+    // (NOT a) AND b
+    And(a=notA, b=b, out=notAAndB);
+
+    // 將兩種可能的情況用 OR 連接
+    Or(a=aAndNotB, b=notAAndB, out=out);
 }

@@ -16,5 +16,10 @@ CHIP DMux8Way {
     OUT a, b, c, d, e, f, g, h;
 
     PARTS:
-    // Put your code here:
+    // 第一層：利用最高位元 sel[2]，決定將 in 訊號送到上半部 (a~d) 還是下半部 (e~h)
+    DMux(in=in, sel=sel[2], a=outABCD, b=outEFGH);
+
+    // 第二層：利用剩下的兩個選擇位元 sel[0..1]，交給 DMux4Way 做最後的 4 選 1 分流
+    DMux4Way(in=outABCD, sel=sel[0..1], a=a, b=b, c=c, d=d);
+    DMux4Way(in=outEFGH, sel=sel[0..1], a=e, b=f, c=g, d=h);
 }
