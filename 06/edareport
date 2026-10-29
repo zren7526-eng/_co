@@ -1,0 +1,128 @@
+IC 設計的 EDA 是什麼？
+1. 什麼是 EDA
+
+EDA（Electronic Design Automation，電子設計自動化）是用軟體完成晶片設計、驗證與製造準備的工具總稱。現代晶片有數百萬到數百億個電晶體，無法手工畫電路，必須靠 EDA 把「功能描述」逐步轉成「可製造的實體佈局」。
+
+2. IC 設計流程與對應的 EDA 工具
+階段	                                  做什麼	                                                              EDA 工具類型
+設計輸入	                         用 HDL（Verilog、VHDL、Veryl 描述電路行為（RTL）	                          編輯器、語法檢查
+功能模擬	                      用 testbench 驗證邏輯是否正確	                                                       模擬器
+邏輯合成	        RTL 轉成閘級網表（gate netlist）	                                                              合成器
+技術映射	                     對應到目標元件（FPGA 的 LUT，或 ASIC 的標準元件庫）                               Technology mapping
+佈局（Placement）	                 決定每個元件放在晶片的哪個位置                                                      Placer
+時脈樹與繞線（CTS／Routing）                 	分配時脈、連接所有線路	                                                 Router
+時序分析（STA）	                              檢查是否滿足時脈頻率要求	                                                  STA 工具
+功耗／IR Drop 分析	                               估計功耗與電壓降	                                                   Power 分析
+簽核與輸出	                                產生 bitstream（FPGA）或 DEF／GDSII（ASIC）	                            Signoff 工具
+
+商用 EDA 主要由 Synopsys、Cadence、Siemens EDA 三大廠主導；開源方面有 Yosys（合成）、OpenROAD（ASIC 佈局繞線）等。
+
+3. 實際使用：veryl2chip
+
+veryl2chip 是一套針對 Veryl HDL 的 EDA，用 Rust 撰寫，涵蓋模擬、邏輯合成、FPGA 流程（目標 iCE40UP5K，一路到 bitstream）以及 ASIC 流程（標準元件、佈局、繞線、時序）。它編譯成 WebAssembly，開瀏覽器就能用，不需安裝。
+
+我的操作過程：
+
+模擬：veryl2chip Veryl → Chip
+
+Seq101 狀態機
+
+全部 #[test]
+
+RTL
+▶ 模擬
+⚙ 合成
+模擬完成 10 ms
+⧉ IDE
+① 來源
+seq101.veryl
+// ==========================================
+// enum 狀態機：Moore 式 "101" 序列偵測器
+// ==========================================
+package SeqPkg {
+    enum St: logic<2> {
+        S0 = 2'd0, // 尚未比對到任何位元
+        S1 = 2'd1, // 已比對到 '1'
+        S2 = 2'd2, // 已比對到 '10'
+    }
+}
+
+module Seq101 (
+    i_clk: input  clock,
+    i_rst: input  reset,
+    i_sig: input  logic,
+    o_hit: output logic,
+) {
+    var st: SeqPkg::St;
+
+    always_ff (i_clk, i_rst) {
+        if_reset {
+            st = SeqPkg::St::S0;
+        } else {
+            case st {
+                SeqPkg::St::S0: {
+                    if (i_sig) { st = SeqPkg::St::S1; } else { st = SeqPkg::St::S0; }
+                }
+                SeqPkg::St::S1: {
+                    if (i_sig) { st = SeqPkg::St::S1; } else { st = SeqPkg::St::S2; }
+                }
+                SeqPkg::St::S2: {
+                    if (i_sig) { st = SeqPkg::St::S1; } else { st = SeqPkg::St::S0; }
+                }
+                default: st = SeqPkg::St::S0;
+            }
+        }
+    }
+
+    assign o_hit = (st == SeqPkg::St::S2) && i_sig;
+}
+
+#[test(seq101_test)]
+module TestSeq101 {
+    inst clk: $tb::clock_gen;
+    inst rst: $tb::reset_gen(clk);
+
+    var sig: logic;
+    var hit: logic;
+
+    inst u: Seq101 (
+        i_clk: clk,
+        i_rst: rst,
+        i_sig: sig,
+        o_hit: hit,
+    );
+
+    initial {
+        rst.assert();
+
+        // 餵入序列 1, 0, 1 → 應偵測到 "101"
+        // （st == S2 且當下輸入為 1 時，在下一個 rising edge 之前就該命中）
+        sig = 1; clk.next();
+        sig = 0; clk.next();
+        sig = 1;
+        $assert(hit, "101 detected");
+        clk.next();
+
+        // '0' 之後應回到未命中
+        sig = 0; clk.next();
+        $assert(!hit, "no hit after break");
+
+        // 序列 1, 1, 0, 1 → 命中
+        sig = 1; clk.next();
+        sig = 1; clk.next();
+        sig = 0; clk.next();
+        sig = 1;
+        $assert(hit, "101 detected across restart");
+        clk.next();
+
+        $finish();
+    }
+}
+
+4. 心得與觀察
+一份 HDL 程式碼，經過同一條流程可以走向 FPGA 或 ASIC，這顯示 EDA 的核心是「抽象層次的逐步降低」。
+合成後還能用同一個 testbench 做閘級模擬，用來確認合成沒有改變功能，這就是驗證的意義。
+時序分析（STA）決定晶片能跑多快，是設計能否收斂的關鍵。
+5. 結論
+
+EDA 是 IC 設計的基礎設施：沒有它，現代晶片不可能被設計出來。veryl2chip 把完整流程搬到瀏覽器，很適合學習每個階段在做什麼。
